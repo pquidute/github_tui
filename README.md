@@ -7,8 +7,10 @@ Open a repository to read its preferred README below the repository details. Hea
 The small block-art robot in the header reacts to keys, loading, errors, and successful actions.
 Profile opens directly to your information and renders your GitHub avatar with colored terminal blocks when your terminal supports true color. The portrait grows with the terminal, and `a` opens a larger photo view.
 
+
 ## Get started
 
+[Watch the demo video](src/assets/demo.mp4).
 Requires Node.js 22 or newer, npm, and an interactive terminal.
 
 ```sh
