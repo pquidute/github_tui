@@ -1,0 +1,9 @@
+# Installed packages and generated output belong on disk, not in commits.
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Future credentials get no invitation to Git.
+.env
+.env.*
+!.env.example
