@@ -61,7 +61,6 @@ export function sphereFrame(seconds: number, width = 48, height = 11): string {
     }
   };
   if (width >= 35 && height >= 9) {
-    label(0, 1, '◈ CORE / ACTIVE');
     label(height - 1, 1, `WAVE ${Math.round(50 + Math.sin(seconds * 1.1) * 38).toString().padStart(2, '0')}%`);
     label(height - 1, width - 14, '● AUTH STANDBY');
   }
@@ -83,6 +82,6 @@ export default function AsciiSphere() {
     return () => clearInterval(timer);
   }, []);
   const width = Math.max(4, Math.min(56, columns - 2));
-  const height = Math.max(4, Math.min(20, rows - 13));
+  const height = Math.max(4, Math.min(20, rows - 17));
   return <Text color={theme.accent}>{sphereFrame(seconds, width, height)}</Text>;
 }
