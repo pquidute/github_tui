@@ -1,7 +1,8 @@
 import type {Session} from './github.js';
 export const sections = ['Profile', 'Repositories', 'Issues', 'Pull requests', 'Activity'] as const;
-export type Entry = {title: string; detail: string; url: string};
-export type Page = {entries: Entry[]; next: boolean; notice: string};
+export type Entry = {title: string; detail: string; url: string; repo?: string; number?: number; canCreateIssue?: boolean};
+export type Profile = {name: string; bio: string; company: string; location: string; blog: string; twitter_username: string};
+export type Page = {entries: Entry[]; next: boolean; notice: string; profile?: Profile; avatarUrl?: string};
 const clean = (value: unknown) => String(value ?? '').replace(/[\x00-\x1f\x7f-\x9f]/g, ' ');
 class ApiError extends Error {
   constructor(public status: number, public limited: boolean, message: string) { super(message); }
@@ -39,15 +40,22 @@ export async function loadPage(session: Session, section: number, page: number, 
   const {data, next} = result;
   if (section === 0) {
     if (!data || typeof data.login !== 'string') throw new Error('Unexpected GitHub profile response.');
-    return {next: false, notice, entries: [{title: clean(data.name || data.login), url: clean(data.html_url), detail: [data.bio, data.company, data.location, `${data.public_repos} public repositories · ${data.followers} followers · ${data.following} following`].filter(Boolean).map(clean).join('\n')}]};
+    const profile: Profile = {name: clean(data.name), bio: clean(data.bio), company: clean(data.company), location: clean(data.location), blog: clean(data.blog), twitter_username: clean(data.twitter_username)};
+    const detail = [
+      `Name: ${profile.name || '—'}`, `Bio: ${profile.bio || '—'}`, `Company: ${profile.company || '—'}`,
+      `Location: ${profile.location || '—'}`, `Website: ${profile.blog || '—'}`, `Twitter: ${profile.twitter_username ? `@${profile.twitter_username}` : '—'}`,
+      `${data.public_repos} public repositories · ${data.followers} followers · ${data.following} following`,
+    ].join('\n');
+    return {next: false, notice, profile, avatarUrl: typeof data.avatar_url === 'string' ? data.avatar_url : undefined, entries: [{title: clean(data.name || data.login), url: clean(data.html_url), detail}]};
   }
   const items = section === 2 || section === 3 ? data.items : data;
   if (!Array.isArray(items)) throw new Error('Unexpected GitHub response. Press r to retry.');
   if (data.incomplete_results) notice += ' GitHub returned incomplete search results; refresh to retry.';
   const entries = items.map((item): Entry => {
-    if (section === 1) return {title: clean(item.full_name), url: clean(item.html_url), detail: `${clean(item.description)}\n${item.private ? 'Private' : 'Public'} · ${clean(item.language || 'No language')} · ★ ${item.stargazers_count} · Forks ${item.forks_count}\nUpdated ${clean(item.updated_at)}`};
+    if (section === 1) return {title: clean(item.full_name), url: clean(item.html_url), repo: item.full_name, canCreateIssue: item.has_issues !== false, detail: `${clean(item.description)}\n${item.private ? 'Private' : 'Public'} · ${clean(item.language || 'No language')} · ★ ${item.stargazers_count} · Forks ${item.forks_count}\nUpdated ${clean(item.updated_at)}`};
     if (section === 4) return {title: `${clean(item.type).replace(/Event$/, '')} · ${clean(item.repo?.name)}`, url: `https://github.com/${clean(item.repo?.name)}`, detail: `${clean(item.actor?.login)} · ${clean(item.created_at)}\n${clean(item.payload?.action)}`};
-    return {title: `#${item.number} ${clean(item.title)}`, url: clean(item.html_url), detail: `${clean(item.state)} · @${clean(item.user?.login)} · Updated ${clean(item.updated_at)}\n${clean(item.body || 'No description.')}`};
+    const repository = typeof item.repository_url === 'string' ? item.repository_url.match(/^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)$/)?.[1] : undefined;
+    return {title: `#${item.number} ${clean(item.title)}`, url: clean(item.html_url), repo: repository, number: item.number, detail: `${clean(item.state)} · @${clean(item.user?.login)} · Updated ${clean(item.updated_at)}\n${clean(item.body || 'No description.')}`};
   });
   return {entries, next, notice};
 }

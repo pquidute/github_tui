@@ -30,6 +30,14 @@ test('dashboard fallback, pagination, and failure handling', async t => {
   assert.equal(count, 1);
   globalThis.fetch = async () => Response.json({items: [], incomplete_results: false});
   assert.deepEqual((await loadPage(session, 2, 1, new AbortController().signal)).entries, []);
+  globalThis.fetch = async () => Response.json({items: [{number: 7, title: 'Review', repository_url: 'https://api.github.com/repos/octocat/repo', html_url: 'https://github.com/octocat/repo/pull/7'}]});
+  assert.deepEqual((await loadPage(session, 3, 1, new AbortController().signal)).entries[0]?.repo, 'octocat/repo');
+  assert.equal((await loadPage(session, 3, 1, new AbortController().signal)).entries[0]?.number, 7);
+  globalThis.fetch = async () => Response.json({login: 'octocat', name: 'Mona', bio: 'Hi', company: 'GitHub', location: 'San Francisco', blog: 'https://example.com', twitter_username: 'mona', avatar_url: 'https://avatars.githubusercontent.com/u/1', html_url: 'https://github.com/octocat', public_repos: 1, followers: 2, following: 3});
+  const profile = await loadPage(session, 0, 1, new AbortController().signal);
+  assert.deepEqual(profile.profile, {name: 'Mona', bio: 'Hi', company: 'GitHub', location: 'San Francisco', blog: 'https://example.com', twitter_username: 'mona'});
+  assert.match(profile.entries[0]!.detail, /Website: https:\/\/example.com/);
+  assert.equal(profile.avatarUrl, 'https://avatars.githubusercontent.com/u/1');
   globalThis.fetch = async () => { throw new Error('secret transport detail'); };
   await assert.rejects(loadPage(session, 4, 1, new AbortController().signal), /Check your connection/);
 });
