@@ -10,13 +10,11 @@ Profile opens directly to your information and renders your GitHub avatar with c
 Requires Node.js 22 or newer, npm, and an interactive terminal.
 
 ```sh
-git clone "https://github.com/OWNER/REPO.git" github_tui
+git clone "https://github.com/pquidute/github_tui.git" github_tui
 cd github_tui
 npm ci
 npm start
 ```
-
-Replace the example URL with this repository's HTTPS or SSH clone URL.
 
 ## Sign in
 

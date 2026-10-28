@@ -1,98 +1,37 @@
-# GitHub TUI — Project Handoff
+# GitHub TUI — Project Notes
 
-## 1. Project overview
+This file is contributor context. The root [README](../README.md) is the user guide.
 
-I'm building a personal GitHub dashboard that runs entirely in the terminal, using a keyboard-driven TUI (Terminal User Interface).
+## Current app
 
-The goal is to create a polished, useful CLI application for interacting with GitHub, rather than a web app.
+GitHub TUI is a keyboard-driven terminal application built with TypeScript, React, and Ink. It runs on Node.js 22 or newer with npm. It is a TUI, not a browser app.
 
-Planned features may include:
+- Sign in with a fine-grained or classic personal access token, an existing GitHub CLI login, or `GH_TOKEN` / `GITHUB_TOKEN`. Tokens stay in memory for the session.
+- Browse the authenticated profile, repositories, issues, pull requests, and activity.
+- Edit profile fields, create issues, and comment on issues or pull requests when the token has the needed write permissions.
+- Render the profile avatar as terminal color blocks, with an expanded photo view. A block-art robot reacts to input and request state.
+- Navigate with arrows, Enter, and numbered shortcuts. The root README lists the controls.
 
-- Viewing my GitHub profile.
-- Browsing repositories.
-- Exploring issues and pull requests.
-- Viewing recent activity.
-- Authenticating with GitHub to access my own data.
+## Code map
 
-These are long-term possibilities, not requirements to implement immediately. Build incrementally.
+- `index.tsx` starts Ink and restores the terminal on exit.
+- `App.tsx` owns dashboard navigation and screen state; `Login.tsx` owns sign-in.
+- `github.ts` authenticates; `dashboard.ts` loads and formats read-only GitHub data.
+- `writes.ts` creates issues and comments; `profile.ts` updates profile fields.
+- `Composer.tsx` and `ProfileEditor.tsx` keep drafts until publication succeeds or the user cancels.
+- `avatar.ts` fetches and decodes GitHub avatars; `Avatar.tsx` draws them with half-block characters. `Companion.tsx` and `AsciiSphere.tsx` provide animations.
+- `tests/` contains offline tests with fake GitHub responses and tokens.
 
-## 2. Technology decisions
+## Development context
 
-- **Language:** TypeScript.
-- **Runtime:** Node.js.
-- **Package manager:** npm.
-- **TUI framework:** Ink (React for terminal interfaces).
-- **UI model:** React components rendered in the terminal.
-- **Target environments:** PowerShell, Bash, Zsh, and other compatible shells.
-- **Development environment:** Ubuntu on WSL 2, running on Windows 11.
-- **Editor:** VS Code connected to WSL.
+The primary development environment is Ubuntu on WSL 2, with Windows 11, Zsh, VS Code, Node.js through NVM, and npm. Keep PowerShell, Bash, and other compatible terminals in mind when changing terminal input or output.
 
-The application should be a terminal program, not a web application. Do not introduce a browser-based UI.
+Run `npm run typecheck` for TypeScript and `npm test` for the offline test suite. `npm run dev` restarts the app on source changes. Interactive keyboard behavior needs a real terminal.
 
-## 3. Development environment
+## Working preferences
 
-My environment is configured as follows:
-
-- Windows 11.
-- WSL 2.
-- Ubuntu 26.04 LTS.
-- Zsh as my default shell.
-- Node.js managed through NVM.
-- TypeScript, `tsx`, and npm.
-- Git and basic build tools.
-
-My preferred Linux project directory is:
-
-`~/projects/github-tui`
-
-I also created a separate TypeScript test project at `~/projects/ts-check` to verify that TypeScript execution and type checking work.
-
-The test project contains a simple `hello.ts` file, which I ran with `npx tsx`. Type checking with `npx tsc --noEmit` also completed without errors.
-
-**Important:** Inspect the actual GitHub TUI project directory before assuming its files, dependencies, or configuration have been created. The Ink project initialization commands were proposed, but their completion has not been confirmed.
-
-## 4. My experience and learning goals
-
-I have experience with web development, TypeScript, REST APIs, and backend development. I have worked with Node.js, Spring Boot, and CMS integrations.
-
-However, building terminal interfaces and structuring a TUI application are new areas for me.
-
-Don't explain basic HTTP, JSON, REST, or TypeScript concepts unless I ask. Focus explanations on the unfamiliar parts of terminal UI development, architecture, and relevant tooling.
-
-## 5. How I want you to work
-
-- Be direct and concise.
-- Work incrementally, one milestone at a time.
-- Explain unfamiliar concepts when they matter.
-- Avoid giant roadmaps and unnecessary abstractions.
-- Don't overengineer a personal project.
-- Don't invent requirements or silently make major architectural decisions.
-- Inspect the existing files before modifying anything.
-- Explain what a command does when it isn't obvious.
-- Prefer simple, maintainable solutions.
-- Ask before introducing significant dependencies or expanding the scope.
-- When a task is small and clear, implement it rather than giving me a long tutorial.
-- If something is uncertain, say so instead of guessing.
-
-I want to understand what we're building, not blindly copy code.
-
-## 6. Current milestone
-
-**Milestone 1: Get a minimal interactive Ink application running.**
-
-Before making changes:
-
-1. Inspect the current directory and identify the existing files and installed dependencies.
-2. Determine whether the project has been initialized with npm and TypeScript.
-3. If anything is missing, set it up without overwriting existing work.
-4. Install or verify Ink and React.
-5. Create a minimal terminal interface that renders successfully and responds to keyboard input.
-6. Verify that the application runs and TypeScript type-checks.
-
-Do not implement GitHub API integration or authentication yet.
-
-## 7. First action
-
-Start by inspecting the project and reporting its current state. Then implement the smallest working Ink application appropriate for the existing setup.
-
-Keep me informed of the important decisions, but don't stop to ask permission for every routine implementation detail.
+- Work incrementally, one milestone at a time. Keep the app simple and maintainable.
+- Inspect the existing project before modifying it; do not assume an older handoff describes the current state.
+- Explain terminal UI decisions and unfamiliar tooling when they matter, without tutorials on basic TypeScript or REST concepts.
+- Avoid unnecessary abstractions, major architecture changes, and significant dependencies without discussion.
+- Be direct about uncertainty and verify behavior before calling a feature complete.
