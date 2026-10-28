@@ -74,7 +74,7 @@ export function sphereFrame(seconds: number, width = 48, height = 11): string {
   return pixels.map(line => line.join('')).join('\n');
 }
 
-export default function AsciiSpinner() {
+export default function AsciiSphere() {
   const {columns, rows} = useWindowSize();
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {

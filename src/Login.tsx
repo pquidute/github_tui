@@ -1,7 +1,7 @@
 import {theme} from './theme.js';
 import {useEffect, useRef, useState} from 'react';
 import {Box, Text, useApp, useInput, useWindowSize} from 'ink';
-import AsciiSpinner from './AsciiSpinner.js';
+import AsciiSphere from './AsciiSphere.js';
 import {authenticate, type Session} from './github.js';
 
 export default function Login({onLogin}: {onLogin: (session: Session) => void}) {
@@ -71,7 +71,7 @@ export default function Login({onLogin}: {onLogin: (session: Session) => void}) 
     <Box borderStyle="single" borderColor={theme.frame} paddingX={1} justifyContent="space-between">
       <Text bold color={theme.accent}>◈ GITHUB // TUI</Text><Text color={theme.muted}>SECURE ACCESS</Text>
     </Box>
-    {!showGuide && <Box justifyContent="center"><AsciiSpinner /></Box>}
+    {!showGuide && <Box justifyContent="center"><AsciiSphere /></Box>}
     <Box flexDirection="column" borderStyle="round" borderColor={theme.frame} paddingX={2} paddingY={1}>
       <Text bold color={theme.accent}>AUTHENTICATE  /  PERSONAL ACCESS TOKEN</Text>
       {showGuide && <Box flexDirection="column" marginY={1}>
