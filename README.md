@@ -10,7 +10,8 @@ Profile opens directly to your information and renders your GitHub avatar with c
 
 ## Get started
 
-[Watch the demo video](src/assets/demo.mp4).
+<img width="1920" height="1080" alt="Recording 2026-10-27 234246" src="https://github.com/user-attachments/assets/7f08be04-de70-43fb-985a-b4e97836e17e" />
+
 Requires Node.js 22 or newer, npm, and an interactive terminal.
 
 ```sh
