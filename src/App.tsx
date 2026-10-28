@@ -1,5 +1,5 @@
 import {theme} from './theme.js';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Text, useApp, useInput, useWindowSize} from 'ink';
 import Login from './Login.js';
 import type {Session} from './github.js';
@@ -12,6 +12,7 @@ import Companion from './Companion.js';
 import {createComment, createIssue} from './writes.js';
 import {numberedOption} from './navigation.js';
 import {updateProfile} from './profile.js';
+import {loadReadme, renderReadmeLines, type ReadmeLine} from './readme.js';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -26,6 +27,7 @@ function Dashboard({session, signOut}: {session: Session; signOut: () => void}) 
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<Page | null>(null);
+  const [readme, setReadme] = useState<{repository: string; content: string | null; loading: boolean; error: string} | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [composer, setComposer] = useState<{kind: 'issue' | 'comment'; repo: string; number?: number; target?: string} | null>(null);
@@ -53,10 +55,37 @@ function Dashboard({session, signOut}: {session: Session; signOut: () => void}) 
     return () => controller.abort();
   }, [session, section, page, revision]);
   const entry = data?.entries[selected];
+  const repository = section === 1 && detail ? entry?.repo : undefined;
+  useEffect(() => {
+    if (!repository) return;
+    const controller = new AbortController();
+    setReadme({repository, content: null, loading: true, error: ''});
+    loadReadme(session, repository, controller.signal).then(content => {
+      if (!controller.signal.aborted) setReadme({repository, content, loading: false, error: ''});
+    }).catch(failure => {
+      if (!controller.signal.aborted) setReadme({repository, content: null, loading: false, error: failure instanceof Error ? failure.message : 'Could not load README.'});
+    });
+    return () => controller.abort();
+  }, [session, repository, revision]);
+  const activeReadme = repository && readme?.repository === repository ? readme : null;
+  const detailWidth = Math.max(1, columns - (section === 0 && data?.avatarUrl ? avatarWidth + 9 : 6));
+  const readmeLines = useMemo(() => activeReadme?.content ? renderReadmeLines(activeReadme.content, detailWidth) : [], [activeReadme?.content, detailWidth]);
   const detailLines = (entry?.detail ?? '').split('\n').flatMap(line => {
-    const width = Math.max(1, columns - (section === 0 && data?.avatarUrl ? avatarWidth + 9 : 6));
+    const width = detailWidth;
     return line.match(new RegExp(`.{1,${width}}`, 'gu')) ?? [''];
   });
+  const repoLines: ReadmeLine[] | null = section === 1 && detail && repository ? [
+    ...detailLines.map(text => ({kind: 'body' as const, parts: [{text}]})),
+    {kind: 'blank', parts: [{text: ''}]},
+    {kind: 'heading', parts: [{text: '▰ README'}]},
+    {kind: 'blank', parts: [{text: ''}]},
+    ...(activeReadme?.loading || !activeReadme
+      ? [{kind: 'quote' as const, parts: [{text: 'Loading README…'}]}]
+      : activeReadme.error || activeReadme.content === null || !activeReadme.content.trim()
+        ? [{kind: 'quote' as const, parts: [{text: activeReadme.error || (activeReadme.content === null ? 'No README found, or Contents access is unavailable.' : 'README is empty.')}]}]
+        : readmeLines),
+  ] : null;
+  const detailLength = repoLines?.length ?? detailLines.length;
   const start = Math.floor(selected / listVisible) * listVisible;
   async function publish(title: string, body: string) {
     if (!composer || writeRequest.current) return;
@@ -118,7 +147,7 @@ function Dashboard({session, signOut}: {session: Session; signOut: () => void}) 
     if (detail) {
       if (input === 'c' && entry?.repo && entry.number) { setWriteError(''); setComposer({kind: 'comment', repo: entry.repo, number: entry.number, target: entry.title}); return; }
       if (input === 'i' && section === 1 && entry?.repo && entry.canCreateIssue) { setWriteError(''); setComposer({kind: 'issue', repo: entry.repo}); return; }
-      if (key.downArrow || input === 'j') setOffset(value => Math.min(Math.max(0, detailLines.length - visible), value + 1));
+      if (key.downArrow || input === 'j') setOffset(value => Math.min(Math.max(0, detailLength - visible), value + 1));
       if (key.upArrow || input === 'k') setOffset(value => Math.max(0, value - 1));
       return;
     }
@@ -161,7 +190,7 @@ function Dashboard({session, signOut}: {session: Session; signOut: () => void}) 
       </Box> : detail && entry ? <>
         <Text bold color={theme.accent} wrap="truncate">{entry.title}</Text>
         <Text color={theme.signal} wrap="truncate">↗ {entry.url}</Text>
-        <Box marginTop={1}><Text>{detailLines.slice(offset, offset + visible).join('\n')}</Text></Box>
+        <Box marginTop={1} flexDirection="column">{repoLines ? repoLines.slice(offset, offset + visible).map((line, index) => <Text key={offset + index} wrap="truncate" bold={line.kind === 'heading' || line.kind === 'subheading'} italic={line.kind === 'quote'} color={line.kind === 'heading' ? theme.accent : line.kind === 'subheading' || line.kind === 'list' ? theme.signal : line.kind === 'quote' || line.kind === 'rule' ? theme.muted : theme.text} backgroundColor={line.kind === 'code' ? '#222222' : undefined}>{line.parts.map((part, partIndex) => <Text key={partIndex} bold={part.style === 'strong'} italic={part.style === 'emphasis'} underline={part.style === 'link'} color={part.style === 'link' ? theme.accent : part.style === 'code' ? theme.signal : undefined}>{part.text}</Text>)}</Text>) : <Text>{detailLines.slice(offset, offset + visible).join('\n')}</Text>}</Box>
       </> : data?.entries.length ? data.entries.slice(start, start + listVisible).map((item, index) => <Text key={start + index} wrap="truncate" {...selectedStyle(start + index === selected)}>{start + index === selected ? ' ❯ ' : '   '}{index + 1}  {item.title}</Text>) : <Text color={theme.muted}>◇ No accessible results found.</Text>}
     </Box>
     {message && <Text color={theme.signal} wrap="truncate">✓ {message}</Text>}
