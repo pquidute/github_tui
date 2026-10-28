@@ -1,9 +1,40 @@
 // Keep authentication separate from rendering so failures stay easy to test.
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+
 export type Session = {token: string; login: string};
+const execFileAsync = promisify(execFile);
+
+export class GhMissingError extends Error {
+  constructor() { super('gh is not installed. Follow the installation steps below.'); }
+}
+
+export function environmentToken(env: NodeJS.ProcessEnv = process.env): string {
+  const token = env.GH_TOKEN || env.GITHUB_TOKEN;
+  if (!token) throw new Error('Set GH_TOKEN or GITHUB_TOKEN before starting the app.');
+  return token.trim();
+}
+
+export async function cliToken(signal?: AbortSignal): Promise<string> {
+  try {
+    // Explicit host avoids taking credentials from a repository's enterprise host.
+    // gh gives environment tokens precedence, so remove them for this method.
+    const {GH_TOKEN: _ghToken, GITHUB_TOKEN: _githubToken, ...env} = process.env;
+    const {stdout} = await execFileAsync('gh', ['auth', 'token', '--hostname', 'github.com'], {
+      env, signal, timeout: 15000, maxBuffer: 4096,
+    });
+    const token = stdout.trim();
+    if (!token) throw new Error('empty token');
+    return token;
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') throw new GhMissingError();
+    throw new Error('GitHub CLI login unavailable. Run gh auth login, then try again.');
+  }
+}
 
 export async function authenticate(token: string, signal?: AbortSignal): Promise<Session> {
-  if (!/^github_pat_[A-Za-z0-9_]+$/.test(token)) {
-    throw new Error('Enter a fine-grained token starting with github_pat_.');
+  if (!/^(?:github_pat_|ghp_|gho_|ghu_)[A-Za-z0-9_]+$/.test(token)) {
+    throw new Error('Enter a valid GitHub token (github_pat_ or ghp_), or choose another sign-in method.');
   }
 
   let response: Response;
